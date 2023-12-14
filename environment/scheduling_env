@@ -18,8 +18,7 @@ import numpy as np
 import openpyxl
 
 from ray.rllib.utils.spaces.space_utils import flatten_space
-#this code solves scheduling problem instance 5-2 with data shown in the paper
-problem = '5-2'
+
 class SingleStage(gym.Env):
 
         def __init__(self, *arg, **kwargs):
@@ -34,11 +33,11 @@ class SingleStage(gym.Env):
                 self.processing_time = timedata.values
                 #############################################################################################
                 #process-scale
-                self.task_N = 20
-                self.machine_N = 5
+                self.task_N = len(costdata.index)
+                self.machine_N = len(costdata.columns)
                 #############################################################################################
                 self.step_count = 0
-                self.step_limit = max((self.due_date)+2) #35
+                self.step_limit = max((self.due_date)+2) 
                 self.mask = True
                 self.cost_sum = 0
                 self.selected_task = []
@@ -46,8 +45,7 @@ class SingleStage(gym.Env):
                 self.selected = np.zeros(self.task_N)
                 self.machines = []
                 self.start_time = np.zeros(self.task_N)
-                # self.end_time = np.zeros(self.machine_N)
-                # self.legal_action = np.zeros()
+
 
                 due_ptime = np.zeros((self.task_N, self.machine_N))
                 for i in range(self.task_N):
@@ -91,7 +89,6 @@ class SingleStage(gym.Env):
                 self.machines = []
                 self.current_task = []
                 self.start_time = np.zeros(self.task_N)
-                # self.end_time = np.zeros(self.machine_N)
 
                 for i in range(self.task_N):
                         self.machines.append(-1)
