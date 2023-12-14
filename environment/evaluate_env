@@ -17,14 +17,12 @@ import pandas as pd
 import numpy as np
 import ast
 
-problem = '5-2'
 class SingleStage(gym.Env):
 
         def __init__(self, *arg, **kwargs):
-                dir = f'/home/sumin4747/PycharmProjects/scheduling/code/SingleStage/{problem}'
-                df_time = pd.read_csv(dir + '/envdata.csv')
-                df_date = pd.read_csv(dir + '/datedata.csv')
-                df_cost = pd.read_csv(dir + '/costdata.csv')
+                df_time = pd.read_csv('/dataset/envdata.csv')
+                df_date = pd.read_csv('/dataset/datedata.csv')
+                df_cost = pd.read_csv('dataset/costdata.csv')
                 timedata = df_time.drop(df_time.columns[[0]], axis=1)
                 self.release_date = df_date.loc[:, 'release']
                 self.due_date = df_date.loc[:, 'due']
@@ -162,7 +160,6 @@ class SingleStage(gym.Env):
                 #action space
                 actionspace = [self.task_N + 1] * self.machine_N
                 self.action_space = gym.spaces.MultiDiscrete(actionspace)
-                # self.action_space = gym.spaces.Discrete(self.task_N+1)
                 self.obs_space = spaces.Box(-1000, 1000, shape=(self.task_N * 2,))
 
                 self.observation_space = spaces.Dict({
@@ -182,7 +179,6 @@ class SingleStage(gym.Env):
 
         def _RESET(self):
                 self.evaluation_count = 1
-                # step_limit2 = self.step_count = random.choice((range(0, self.max_due_ptime,1)))
                 self.step_count = random.choice(range(max(self.release_date), self.max_due_ptime,1))
 
                 self.start_step = self.step_count
@@ -224,7 +220,6 @@ class SingleStage(gym.Env):
                         step_mask = random.choice(range(0,self.max_due_ptime-self.step_count,1))
                         self.masked_action[self.step_count:self.step_count+step_mask,m,1:] = 0
 
-                # self._update_state()
                 self.observations = np.hstack([self.machines, self.start_time])
                 self.state = {
                         "action_mask": np.ravel(self.masked_action[self.step_count]),
@@ -267,7 +262,6 @@ class SingleStage(gym.Env):
                                                         self.machines[self.current_task[i]] = i
                                                         self.start_time[self.current_task[i]] = self.step_count
                                                         reward += 0
-                                                        # reward += -self.cost[self.current_task[i], i] * (10**(-2))
 
                                                         self.reward += reward
 
@@ -278,9 +272,6 @@ class SingleStage(gym.Env):
                 else:
                         if self.evaluation_count == 1:
                                 self.evaluation_count += 1
-                                # for m in range(self.machine_N):
-                                #         self.machine_task_1[m] = self.machine_task[m]
-                                # self.start_time_1 = self.start_time
                                 self.data1['machineA'].append(self.machine_task[0])
                                 self.data1['machineB'].append(self.machine_task[1])
                                 if self.machine_N >= 3:
@@ -295,7 +286,7 @@ class SingleStage(gym.Env):
                                 self.data1['reward'].append(self.reward)
                                 self.data1['step'].append(self.start_step)
                                 pd.DataFrame(self.data1).to_csv(
-                                        f'~/PycharmProjects/scheduling/code/SingleStage/evaluation/{problem}/final/result1.csv',
+                                        f'~/result/result1.csv',
                                         mode='a', na_rep='NaN', header=False)
                                 self.step_count = 0
 
@@ -339,8 +330,7 @@ class SingleStage(gym.Env):
                                         self.data2['start_time_1'].append(self.start_time_1)
                                         self.data2['step'].append(self.start_step)
                                         pd.DataFrame(self.data2).to_csv(
-                                                # f'~/PycharmProjects/scheduling/code/SingleStage/evaluation/{problem}/backstep_eval/result1.csv',
-                                                f'~/PycharmProjects/scheduling/code/SingleStage/evaluation/{problem}/final/result.csv',
+                                                f'~/result/result.csv',
 
                                                 mode='a', na_rep='NaN', header=False)
                 self._update_state()
@@ -356,14 +346,10 @@ class SingleStage(gym.Env):
                                 self.masked_action[self.step_count+1:,:,val] = 0 #masking selected task masking
 
                 # state= np.hstack([self.step_count,self.current_task, self.cost_sum])
-                self.observations = np.hstack([self.machines, self.start_time])
 
                 if self.evaluation_count == 2 and self.step_count == 0:
-                        # self.machines = []
-                        # for i in range(self.task_N):
-                        #         self.machines.append(-1)
                         result = pd.read_csv(
-                                f'/home/sumin4747/PycharmProjects/scheduling/code/SingleStage/evaluation/{problem}/final/result1.csv')
+                                f'/result/result1.csv')
                         result = (result.drop(result.columns[[0]], axis=1)).values
                         r = result[random.randint(0, len(result))]
                         self.cost_sum = r[self.machine_N]
@@ -398,7 +384,6 @@ class SingleStage(gym.Env):
                         for i in range(self.machine_N):
                                 task_num = ast.literal_eval(r[i]) #selected task number from machineA, machineB,...
                                 for task in task_num:
-                                        # self.masked_action[self.step_count:self.step_count+self.processing_time[task,i],i,1:] = 0 #occupied
                                         self.masked_action[self.step_count:, :, task + 1] = 0
                                         self.machine_task[i].append(task)
                                         self.machine_task_1[i].append(task)
@@ -412,7 +397,6 @@ class SingleStage(gym.Env):
                         ####Reset data
 
 
-                        # self.start_time = (np.zeros(self.task_N)).tolist()
 
 
                 self.step_count += 1
