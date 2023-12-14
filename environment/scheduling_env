@@ -22,9 +22,9 @@ from ray.rllib.utils.spaces.space_utils import flatten_space
 class SingleStage(gym.Env):
 
         def __init__(self, *arg, **kwargs):
-                df_time = pd.read_csv('dataset/envdata.csv')
-                df_date = pd.read_csv('dataset/datedata.csv')
-                df_cost = pd.read_csv('dataset/costdata.csv')
+                df_time = pd.read_csv('/dataset/envdata.csv')
+                df_date = pd.read_csv('/dataset/datedata.csv')
+                df_cost = pd.read_csv('/dataset/costdata.csv')
                 timedata = df_time.drop(df_time.columns[[0]], axis=1)
                 self.release_date = df_date.loc[:, 'release']
                 self.due_date = df_date.loc[:, 'due']
