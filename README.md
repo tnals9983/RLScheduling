@@ -28,7 +28,7 @@ setup(
 
 ## Code implementation example
 
-### Train EMSRL
+### Train RLScheduling
 
 You can adjust the hyperparameters in the rl_config in the train.py file.
 
