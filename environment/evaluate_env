@@ -1,1 +1,435 @@
+from __future__ import annotations
+
+from gym import spaces
+import numpy as np
+import gym
+from gym.utils import seeding
+from or_gym.utils import assign_env_config
+import pandas as pd
+import copy
+from copy import deepcopy
+from numpy import random
+import datetime
+
+import gym
+from gym import spaces, logger
+import pandas as pd
+import numpy as np
+import ast
+
+problem = '5-2'
+class SingleStage(gym.Env):
+
+        def __init__(self, *arg, **kwargs):
+                dir = f'/home/sumin4747/PycharmProjects/scheduling/code/SingleStage/{problem}'
+                df_time = pd.read_csv(dir + '/envdata.csv')
+                df_date = pd.read_csv(dir + '/datedata.csv')
+                df_cost = pd.read_csv(dir + '/costdata.csv')
+                timedata = df_time.drop(df_time.columns[[0]], axis=1)
+                self.release_date = df_date.loc[:, 'release']
+                self.due_date = df_date.loc[:, 'due']
+                costdata = df_cost.drop(df_cost.columns[[0]], axis=1)
+                self.cost = costdata.values
+                self.processing_time = timedata.values
+                self.reward = 0
+                #############################################################################################
+                #process-scale
+                self.task_N = len(costdata.index)
+                self.machine_N = len(costdata.columns)
+                #############################################################################################
+                self.evaluation_count = 1
+                self.step_limit = max((self.due_date)+2) #35
+                self.mask = True
+                self.cost_sum = 0
+                self.occupied_time = np.zeros(self.machine_N)
+                self.selected_task = []
+                self.current_task = []
+                self.selected = np.zeros(self.task_N)
+                self.machines = []
+                self.end_time = np.zeros(self.machine_N)
+                self.machine_task_1 = self.init_list_of_objects(self.machine_N)  # machine-task allocation data
+
+                self.start_time_1 = (np.zeros(self.task_N)).tolist()
+                self.first_selected = []
+
+                if self.machine_N == 2:
+
+                        self.data2 = {
+                                'machineA': [],
+                                'machineB': [],
+                                # 'machineC': [],
+                                # 'machineD': [],
+                                # 'machineE': [],
+                                'cost_sum': [],
+                                'start_time': [],
+                                'selected': [],
+                                'num_selected': [],
+                                'reward':[],
+                                'machineA_1': [],
+                                'machineB_1': [],
+                                'start_time_1': [],
+                                'step': []
+                        }
+
+                        self.data1 = {
+                                'machineA': [],
+                                'machineB': [],
+                                'cost_sum': [],
+                                'start_time': [],
+                                'selected': [],
+                                'num_selected': [],
+                                'reward': [],
+                                'step': []
+                        }
+                elif self.machine_N == 3:
+                        self.data2 = {
+                                'machineA': [],
+                                'machineB': [],
+                                'machineC': [],
+                                # 'machineD': [],
+                                # 'machineE': [],
+                                'cost_sum': [],
+                                'start_time': [],
+                                'selected': [],
+                                'num_selected': [],
+                                'reward': [],
+                                'machineA_1' :[],
+                                'machineB_1': [],
+                                'machineC_1': [],
+                                'start_time_1' : [],
+                                'step' : []
+                        }
+                        self.data1 = {
+                                'machineA': [],
+                                'machineB': [],
+                                'machineC': [],
+                                'cost_sum': [],
+                                'start_time': [],
+                                'selected': [],
+                                'num_selected': [],
+                                'reward': [],
+                                'step': []
+                        }
+                elif self.machine_N == 5:
+                        self.data2 = {
+                                'machineA': [],
+                                'machineB': [],
+                                'machineC': [],
+                                'machineD': [],
+                                'machineE': [],
+                                'cost_sum': [],
+                                'start_time': [],
+                                'selected': [],
+                                'num_selected': [],
+                                'reward': [],
+                                'machineA_1' : [],
+                                'machineB_1' : [],
+                                'machineC_1' : [],
+                                'machineD_1' : [],
+                                'machineE_1' : [],
+                                'start_time_1' : [],
+                                'step' : []
+                        }
+                        self.data1 = {
+                                'machineA': [],
+                                'machineB': [],
+                                'machineC': [],
+                                'machineD': [],
+                                'machineE': [],
+                                'cost_sum': [],
+                                'start_time': [],
+                                'selected': [],
+                                'num_selected': [],
+                                'reward': [],
+                                'step': []
+                        }
+                self.start_time = (np.zeros(self.task_N)).tolist()
+                due_ptime = np.zeros((self.task_N, self.machine_N))
+                for i in range(self.task_N):
+                    for j in range(self.machine_N):
+                        due_ptime[i, j] = self.due_date[i] - self.processing_time[i, j]
+
+                self.max_due_ptime = int(np.max(due_ptime))
+                for i in range(self.task_N):
+                        self.machines.append(-1)
+                for i in range(self.machine_N):
+                        self.current_task.append(-1)
+
+
+
+
+                self.machine_task = self.init_list_of_objects(self.machine_N)  # machine-task allocation data
+                #action space
+                actionspace = [self.task_N + 1] * self.machine_N
+                self.action_space = gym.spaces.MultiDiscrete(actionspace)
+                # self.action_space = gym.spaces.Discrete(self.task_N+1)
+                self.obs_space = spaces.Box(-1000, 1000, shape=(self.task_N * 2,))
+
+                self.observation_space = spaces.Dict({
+                        "action_mask": spaces.Box(0, 1, shape=((self.task_N + 1) * self.machine_N,)),
+                        # "avail_actions" : spaces.Box(0,1, shape=(2,self.task_N)),
+                        "observations": self.obs_space
+                })
+                self.reset()
+
+        def init_list_of_objects(self,size):
+                list_of_objects = list()
+                for i in range(0, size):
+                        list_of_objects.append(list())  # different object reference each time
+                return list_of_objects
+
+
+
+        def _RESET(self):
+                self.evaluation_count = 1
+                # step_limit2 = self.step_count = random.choice((range(0, self.max_due_ptime,1)))
+                self.step_count = random.choice(range(max(self.release_date), self.max_due_ptime,1))
+
+                self.start_step = self.step_count
+
+                self.cost_sum = 0
+                self.reward = 0
+                self.start_time = (np.zeros(self.task_N)).tolist()
+                self.start_time_1 = (np.zeros(self.task_N)).tolist()
+
+                self.occupied_time = np.zeros(self.machine_N)
+                self.selected_task = []
+                self.selected = np.zeros(self.task_N)
+                self.current_task = []
+                self.end_time = np.zeros(self.machine_N)
+                self.machines = []
+                for i in range(self.task_N):
+                        self.machines.append(-1)
+
+                for i in range(self.machine_N):
+                        self.current_task.append(-1)
+
+                self.machine_task = self.init_list_of_objects(self.machine_N)  # machine-task allocation data
+                self.machine_task_1 = self.init_list_of_objects(self.machine_N)  # machine-task allocation data
+
+                i = self.step_limit + 1
+                j = self.machine_N
+                k = self.task_N + 1
+
+                self.masked_action = np.ones((i, j, k))
+                for t in range(1, k):
+                        for m in range(j):
+                                for ii in range(self.release_date[t - 1]):
+                                        self.masked_action[ii, m, t] = 0
+                                for iii in range(self.due_date[t - 1] - self.processing_time[t - 1, m] + 1, i):
+                                        self.masked_action[iii, m, t] = 0
+
+                #masking timesteps differently for each machine
+                for m in range(self.machine_N):
+                        step_mask = random.choice(range(0,self.max_due_ptime-self.step_count,1))
+                        self.masked_action[self.step_count:self.step_count+step_mask,m,1:] = 0
+
+                # self._update_state()
+                self.observations = np.hstack([self.machines, self.start_time])
+                self.state = {
+                        "action_mask": np.ravel(self.masked_action[self.step_count]),
+                        "observations": np.ravel(self.observations)
+                }
+                return self.state
+
+
+        def _STEP(self,action):
+                reward = 0
+                self.actions = []
+                action_list = []
+                for i in range(self.machine_N):
+                        self.actions.extend([action[i]])
+                        action_list.extend([action[i]])
+                while 0 in action_list:
+                        action_list.remove(0)
+                if self.step_count < self.step_limit-1:
+                        if len(set(action_list)) != len(action_list): #prevent selecting same task
+                                reward += - 110
+                                done = True
+                        else:
+                                for i in range(int(self.machine_N)):
+                                        if action[i] == 0 :
+                                                self.cost_sum += 0
+                                                reward += 0
+                                                done = False
+                                        else :
+                                                self.current_task[i] = action[i]-1
+
+                                                if self.step_count < self.release_date[self.current_task[i]] or \
+                                                        self.step_count > self.due_date[self.current_task[i]]-self.processing_time[self.current_task[i],i]:
+                                                        reward += -300
+                                                        done = True
+                                                else:
+                                                        self.cost_sum += self.cost[self.current_task[i], i]
+                                                        self.selected_task.append(self.current_task[i])
+                                                        self.machine_task[i].append(self.current_task[i])
+                                                        self.selected[self.current_task[i]] = 1
+                                                        self.machines[self.current_task[i]] = i
+                                                        self.start_time[self.current_task[i]] = self.step_count
+                                                        reward += 0
+                                                        # reward += -self.cost[self.current_task[i], i] * (10**(-2))
+
+                                                        self.reward += reward
+
+                                                        done  = False
+
+
+
+                else:
+                        if self.evaluation_count == 1:
+                                self.evaluation_count += 1
+                                # for m in range(self.machine_N):
+                                #         self.machine_task_1[m] = self.machine_task[m]
+                                # self.start_time_1 = self.start_time
+                                self.data1['machineA'].append(self.machine_task[0])
+                                self.data1['machineB'].append(self.machine_task[1])
+                                if self.machine_N >= 3:
+                                        self.data1['machineC'].append(self.machine_task[2])
+                                        if self.machine_N >= 5:
+                                                self.data1['machineD'].append(self.machine_task[3])
+                                                self.data1['machineE'].append(self.machine_task[4])
+                                self.data1['cost_sum'].append(self.cost_sum)
+                                self.data1['start_time'].append(self.start_time)
+                                self.data1['selected'].append(self.selected_task)
+                                self.data1['num_selected'].append(len(self.selected_task))
+                                self.data1['reward'].append(self.reward)
+                                self.data1['step'].append(self.start_step)
+                                pd.DataFrame(self.data1).to_csv(
+                                        f'~/PycharmProjects/scheduling/code/SingleStage/evaluation/{problem}/final/result1.csv',
+                                        mode='a', na_rep='NaN', header=False)
+                                self.step_count = 0
+
+                                done = False
+
+                        elif self.evaluation_count ==2:
+                            if len(self.selected_task) != self.task_N:
+                                    if len(self.selected_task) > 0 :
+                                            reward +=  (-100 * 1/len(self.selected_task) ) -self.cost_sum * (10**(-2))
+                                            self.reward += reward
+
+                                    else:
+                                            reward += -110
+
+                            elif len(self.selected_task) == self.task_N:
+                                    reward += -self.cost_sum * (10**(-2))
+
+                            done = True
+
+                        if done == True:
+                                if self.cost_sum > 0:
+                                        self.data2['machineA'].append(self.machine_task[0])
+                                        self.data2['machineB'].append(self.machine_task[1])
+                                        if self.machine_N >= 3:
+                                                self.data2['machineC'].append(self.machine_task[2])
+                                                if self.machine_N >= 5:
+                                                        self.data2['machineD'].append(self.machine_task[3])
+                                                        self.data2['machineE'].append(self.machine_task[4])
+                                        self.data2['cost_sum'].append(self.cost_sum)
+                                        self.data2['start_time'].append(self.start_time)
+                                        self.data2['selected'].append(self.selected_task)
+                                        self.data2['num_selected'].append(len(self.selected_task))
+                                        self.data2['reward'].append(reward)
+                                        self.data2['machineA_1'].append(self.machine_task_1[0])
+                                        self.data2['machineB_1'].append(self.machine_task_1[1])
+                                        if self.machine_N >= 3:
+                                                self.data2['machineC_1'].append(self.machine_task_1[2])
+                                                if self.machine_N >= 5:
+                                                        self.data2['machineD_1'].append(self.machine_task_1[3])
+                                                        self.data2['machineE_1'].append(self.machine_task_1[4])
+                                        self.data2['start_time_1'].append(self.start_time_1)
+                                        self.data2['step'].append(self.start_step)
+                                        pd.DataFrame(self.data2).to_csv(
+                                                # f'~/PycharmProjects/scheduling/code/SingleStage/evaluation/{problem}/backstep_eval/result1.csv',
+                                                f'~/PycharmProjects/scheduling/code/SingleStage/evaluation/{problem}/final/result.csv',
+
+                                                mode='a', na_rep='NaN', header=False)
+                self._update_state()
+
+                return self.state, reward, done, {}
+
+        def _update_state(self):
+
+                #idx = machine num , val = task num
+                for idx, val in enumerate(self.actions):
+                        if val > 0 :
+                                self.masked_action[self.step_count:self.step_count+self.processing_time[val-1,idx],idx,1:] = 0 #masking occupied machine masking
+                                self.masked_action[self.step_count+1:,:,val] = 0 #masking selected task masking
+
+                # state= np.hstack([self.step_count,self.current_task, self.cost_sum])
+                self.observations = np.hstack([self.machines, self.start_time])
+
+                if self.evaluation_count == 2 and self.step_count == 0:
+                        # self.machines = []
+                        # for i in range(self.task_N):
+                        #         self.machines.append(-1)
+                        result = pd.read_csv(
+                                f'/home/sumin4747/PycharmProjects/scheduling/code/SingleStage/evaluation/{problem}/final/result1.csv')
+                        result = (result.drop(result.columns[[0]], axis=1)).values
+                        r = result[random.randint(0, len(result))]
+                        self.cost_sum = r[self.machine_N]
+                        self.start_time_1 = ast.literal_eval(r[self.machine_N + 1])
+                        self.start_time = ast.literal_eval(r[self.machine_N + 1])
+                        self.start_step = r[self.machine_N +5]
+                        for i in range(self.task_N):
+                                self.start_time[i] = int(self.start_time[i])
+                        self.selected_task = ast.literal_eval(r[self.machine_N + 2])
+                        self.machines = []
+                        self.current_task = []
+                        for i in range(self.task_N):
+                                self.machines.append(-1)
+                        for i in range(self.machine_N):
+                                self.current_task.append(-1)
+
+                        self.machine_task = self.init_list_of_objects(self.machine_N)
+
+                        ##############################rest self.masked_action############################
+                        i = self.step_limit + 1
+                        j = self.machine_N
+                        k = self.task_N + 1
+
+                        self.masked_action = np.ones((i, j, k))
+                        for t in range(1, k):
+                                for m in range(j):
+                                        for ii in range(self.release_date[t - 1]):
+                                                self.masked_action[ii, m, t] = 0
+                                        for iii in range(self.due_date[t - 1] - self.processing_time[t - 1, m] + 1, i):
+                                                self.masked_action[iii, m, t] = 0
+
+                        for i in range(self.machine_N):
+                                task_num = ast.literal_eval(r[i]) #selected task number from machineA, machineB,...
+                                for task in task_num:
+                                        # self.masked_action[self.step_count:self.step_count+self.processing_time[task,i],i,1:] = 0 #occupied
+                                        self.masked_action[self.step_count:, :, task + 1] = 0
+                                        self.machine_task[i].append(task)
+                                        self.machine_task_1[i].append(task)
+                                        self.machines[task] = i
+                                        self.masked_action[self.start_time[task]:self.start_time[task] + self.processing_time[task, i], i,1:] = 0
+                                        for t in range(self.task_N):
+                                                if self.start_time[task] - self.processing_time[t, i] > 0:
+                                                        self.masked_action[self.start_time[task] - self.processing_time[t, i]:self.start_time[task], i, t + 1] = 0
+                                                else:
+                                                        self.masked_action[0:self.start_time[task], i, t + 1] = 0
+                        ####Reset data
+
+
+                        # self.start_time = (np.zeros(self.task_N)).tolist()
+
+
+                self.step_count += 1
+
+                self.observations = np.hstack([self.machines, self.start_time])
+
+                self.state = {
+                        "action_mask" : np.ravel(self.masked_action[self.step_count]),
+                        # "avail_actions" : np.ones((2,self.task_N+1)),
+                        "observations": np.ravel(self.observations)
+                }
+                # self.step_count += 1
+
+        def step(self, action):
+                return self._STEP(action)
+
+        def reset(self):
+                return self._RESET()
+SingleStage()
 
