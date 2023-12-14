@@ -50,4 +50,4 @@ python parallel_evaluation.py
 
 ## Data
 
-Datasets related to this article can be found at (http://egon.cheme.cmu.edu/Papers/HarjunkoskiDecompositionCACE-2725.pdf)http://egon.cheme.cmu.edu/Papers/HarjunkoskiDecompositionCACE-2725.pdf)
+Datasets related to this article can be found at (http://egon.cheme.cmu.edu/Papers/HarjunkoskiDecompositionCACE-2725.pdf)
