@@ -52,7 +52,7 @@ Example usage w/o checkpoint (for testing purposes):
 # register_env("pa_cartpole", lambda _: ParametricActionsCartPole(10))
 
 from ray import tune
-from evaluate_env_base import SingleStage as env
+from environment.evaluate_env import SingleStage as env
 
 
 def register_env(env_name, env_config={}):
@@ -65,23 +65,6 @@ def register_env(env_name, env_config={}):
 env_name = 'SingleStage'
 env_config = dict(simple_optimizer=False)
 
-
-# config = dict(
-#     env = env_name,
-#     # num_workers=1,
-#     lr=5e-3,
-#     # simple_optimizer=False,
-#     # num_gpus=4,
-#     env_config=env_config,
-#     framework='torch',
-#     train_batch_size=2600*2,
-#     # rollout_fragment_length=1040*2,
-#     model = dict(
-#         max_seq_len = 24*10,
-#         lstm_use_prev_action=True,
-#         lstm_use_prev_reward=True,
-#     )
-# )
 class ActionMaskModel(TFModelV2):
     """Model that handles simple discrete action masking.
     This assumes the outputs are logits for a single Categorical action dist.
