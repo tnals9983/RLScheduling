@@ -1,0 +1,40 @@
+import pandas as pd
+from numpy import random
+import os, sys
+##################################################################################################################
+cp_path = '/home/sumin4747/ray_results/scheduling/SingleStage/rl_5_2_final/PPO/PPO_SingleStage_e7006_00012_12_2022-11-10_11-25-12/checkpoint_001260/checkpoint-1260'
+import multiprocessing as mp
+from multiprocessing import Pool
+import ray
+import time
+ray.init(object_store_memory=20000000000)
+
+##################################################################################################################
+start = time.time()
+
+@ray.remote
+def evaluation():
+    # for i in range(parallel):
+    dir =  f'/home/sumin4747/PycharmProjects/scheduling/code/SingleStage/evaluation'
+    os.chdir(dir)
+    terminal_command = f"python evaluate_backstep.py {cp_path} --run PPO --env SingleStage --episodes 100 --steps 1000000 --out rollouts.pkl "
+    os.system(terminal_command)
+
+# def multiprocessing():
+#     num_cores = mp.cpu_count()
+#     pool = Pool(num_cores)
+#     pool.map(evaluation(100))
+
+data = [evaluation.remote() for _ in range(10)]
+ray.get(data)
+ptime = time.time() - start
+print(f'{ptime}s')
+ray.shutdown()
+###################################################################################################################
+#
+# dir = f'/home/sumin4747/PycharmProjects/scheduling/code/SingleStage/evaluation/{problem}'
+# os.chdir(dir)
+# command =f"python sort_out.py  "
+# os.system(command)
+
+
