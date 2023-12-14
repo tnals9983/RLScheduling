@@ -29,7 +29,7 @@ from ray.rllib import agents
 from ray import tune
 from ray.tune import Stopper
 # Custom Environment (\
-from scheduling_env import SingleStage as env
+from environment.scheduling_env import SingleStage as env
 from or_gym.utils import create_env
 
 start = time.time()
